@@ -82,7 +82,7 @@ def detection_page():
 
     if uploaded:
         img = Image.open(uploaded)
-        st.image(img, caption="Gambar Input", use_column_width=True)
+        st.image(img, caption="Gambar Input", use_container_width=True)
 
         if st.button("🔎 Deteksi Sekarang"):
             result = model.predict(img, conf=confidence)
@@ -127,7 +127,7 @@ def history_page():
 
             img_path = os.path.join(RIWAYAT_FOLDER, img_name)
             if os.path.exists(img_path):
-                st.image(img_path, caption=img_name, use_column_width=True)
+                st.image(img_path, caption=img_name, use_container_width=True)
             else:
                 st.warning(f"Gambar {img_name} tidak ditemukan.")
 
