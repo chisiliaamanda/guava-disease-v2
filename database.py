@@ -28,11 +28,9 @@ def create_tables():
     conn.commit()
     conn.close()
 
-
 # Hash password menggunakan SHA-256
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
-
 
 # Registrasi user baru
 def register_user(username, password):
@@ -48,7 +46,6 @@ def register_user(username, password):
     finally:
         conn.close()
 
-
 # Login user, return user_id jika berhasil
 def login_user(username, password):
     conn = sqlite3.connect('deteksi.db')
@@ -58,7 +55,6 @@ def login_user(username, password):
     user = cursor.fetchone()
     conn.close()
     return user[0] if user else None
-
 
 # Simpan riwayat deteksi
 def simpan_riwayat(user_id, image_name, hasil_deteksi):
@@ -71,24 +67,22 @@ def simpan_riwayat(user_id, image_name, hasil_deteksi):
     conn.commit()
     conn.close()
 
-
-# Ambil riwayat deteksi berdasarkan user_id
+# Ambil riwayat deteksi berdasarkan user_id dan tampilkan juga username
 def ambil_riwayat(user_id):
     conn = sqlite3.connect('deteksi.db')
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT image_name, detection_result, detected_at
-        FROM detection_history
-        WHERE user_id = ?
-        ORDER BY detected_at DESC
+        SELECT u.username, d.image_name, d.detection_result, d.detected_at
+        FROM detection_history d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.user_id = ?
+        ORDER BY d.detected_at DESC
     ''', (user_id,))
     hasil = cursor.fetchall()
     conn.close()
     return hasil
 
-
 # Jalankan hanya sekali untuk membuat tabel di awal
 if __name__ == "__main__":
     create_tables()
     print("Database dan tabel berhasil dibuat.")
-
