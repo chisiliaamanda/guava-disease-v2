@@ -5,16 +5,14 @@ import numpy as np
 import database
 import os
 
-# Setup database
+# Setup database dan folder gambar
 database.create_tables()
+RIWAYAT_FOLDER = 'riwayat_images'
+os.makedirs(RIWAYAT_FOLDER, exist_ok=True)
 
 # Load model YOLO
 MODEL_PATH = 'weights/best.pt'
 model = YOLO(MODEL_PATH)
-
-# Buat folder penyimpanan gambar riwayat
-RIWAYAT_FOLDER = 'riwayat_images'
-os.makedirs(RIWAYAT_FOLDER, exist_ok=True)
 
 # UI Styles
 def girly_style():
@@ -66,7 +64,7 @@ def home_page():
     st.markdown("""
     Deteksi penyakit jambu biji secara otomatis menggunakan model YOLOv11.
 
-    **Jenis penyakit:**
+    **Jenis penyakit yang dapat dikenali:**
     1. Phytophthora → busuk akar & batang  
     2. Scab → bercak kasar di kulit  
     3. Styler and Root → gangguan bunga & akar
@@ -77,7 +75,6 @@ def home_page():
 def detection_page():
     st.title("🔍 Deteksi Penyakit Jambu")
     confidence = st.sidebar.slider("Confidence", 10, 100, 25) / 100
-
     uploaded = st.sidebar.file_uploader("Unggah Gambar", type=["jpg", "jpeg", "png"])
 
     if uploaded:
@@ -99,7 +96,7 @@ def detection_page():
             st.markdown("**Deteksi:**")
             st.write(", ".join(set(detected_labels)))
 
-            # Simpan gambar asli ke folder riwayat_images
+            # Simpan gambar ke folder riwayat_images
             save_path = os.path.join(RIWAYAT_FOLDER, uploaded.name)
             img.save(save_path)
 
@@ -122,23 +119,28 @@ def history_page():
     if not riwayat:
         st.info("Belum ada riwayat deteksi.")
     else:
-        for i, (img_name, result, waktu) in enumerate(riwayat, 1):
-            st.subheader(f"Riwayat #{i}")
+        for i, item in enumerate(riwayat, 1):
+            if isinstance(item, (list, tuple)) and len(item) == 3:
+                img_name, result, waktu = item
+                st.subheader(f"Riwayat #{i}")
+                img_path = os.path.join(RIWAYAT_FOLDER, img_name)
 
-            img_path = os.path.join(RIWAYAT_FOLDER, img_name)
-            if os.path.exists(img_path):
-                st.image(img_path, caption=img_name, use_container_width=True)
+                if os.path.exists(img_path):
+                    st.image(img_path, caption=img_name, use_container_width=True)
+                else:
+                    st.warning(f"Gambar {img_name} tidak ditemukan di folder `{RIWAYAT_FOLDER}`.")
+
+                st.write(f"**Hasil Deteksi:** {result}")
+                st.write(f"**Waktu:** {waktu}")
+                st.write("---")
             else:
-                st.warning(f"Gambar {img_name} tidak ditemukan.")
-
-            st.write(f"**Hasil Deteksi:** {result}")
-            st.write(f"**Waktu:** {waktu}")
-            st.write("---")
+                st.warning(f"Riwayat ke-{i} tidak valid: {item}")
 
 # Aplikasi Utama
 def main():
     girly_style()
     sidebar_header()
+    st.caption(f"📁 Database aktif: `{os.path.abspath(database.DB_PATH)}`")
 
     if 'user_id' not in st.session_state:
         login_page()
