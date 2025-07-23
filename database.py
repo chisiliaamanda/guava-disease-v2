@@ -1,88 +1,88 @@
 import sqlite3
+from datetime import datetime
 import hashlib
 
-# Buat tabel users dan detection_history jika belum ada
+DB_PATH = "guava.db"
+
 def create_tables():
-    conn = sqlite3.connect('deteksi.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute('''
+    # Tabel users
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL
         )
-    ''')
+    """)
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS detection_history (
+    # Tabel riwayat deteksi
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS riwayat (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             image_name TEXT,
-            detection_result TEXT,
-            detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            hasil TEXT,
+            waktu TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
-    ''')
+    """)
 
     conn.commit()
     conn.close()
 
-# Hash password menggunakan SHA-256
+# Fungsi hash password
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Registrasi user baru
+# Fungsi registrasi
 def register_user(username, password):
-    conn = sqlite3.connect('deteksi.db')
-    cursor = conn.cursor()
     try:
-        cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)',
-                       (username, hash_password(password)))
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        hashed = hash_password(password)
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
         conn.commit()
+        conn.close()
         return True
     except sqlite3.IntegrityError:
-        return False  # Username sudah ada
-    finally:
-        conn.close()
+        return False
 
-# Login user, return user_id jika berhasil
+# Fungsi login
 def login_user(username, password):
-    conn = sqlite3.connect('deteksi.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('SELECT id FROM users WHERE username = ? AND password = ?',
-                   (username, hash_password(password)))
+    hashed = hash_password(password)
+    cursor.execute("SELECT id FROM users WHERE username = ? AND password = ?", (username, hashed))
     user = cursor.fetchone()
     conn.close()
-    return user[0] if user else None
+    if user:
+        return user[0]  # user_id
+    return None
 
 # Simpan riwayat deteksi
-def simpan_riwayat(user_id, image_name, hasil_deteksi):
-    conn = sqlite3.connect('deteksi.db')
+def simpan_riwayat(user_id, image_name, hasil):
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO detection_history (user_id, image_name, detection_result)
-        VALUES (?, ?, ?)
-    ''', (user_id, image_name, hasil_deteksi))
+    waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("""
+        INSERT INTO riwayat (user_id, image_name, hasil, waktu)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, image_name, hasil, waktu))
     conn.commit()
     conn.close()
 
-# Ambil riwayat deteksi berdasarkan user_id dan tampilkan juga username
+# Ambil riwayat berdasarkan user
 def ambil_riwayat(user_id):
-    conn = sqlite3.connect('deteksi.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT u.username, d.image_name, d.detection_result, d.detected_at
-        FROM detection_history d
-        JOIN users u ON d.user_id = u.id
-        WHERE d.user_id = ?
-        ORDER BY d.detected_at DESC
-    ''', (user_id,))
+    cursor.execute("""
+        SELECT image_name, hasil, waktu
+        FROM riwayat
+        WHERE user_id = ?
+        ORDER BY waktu DESC
+    """, (user_id,))
     hasil = cursor.fetchall()
     conn.close()
     return hasil
-
-# Jalankan hanya sekali untuk membuat tabel di awal
-if __name__ == "__main__":
-    create_tables()
-    print("Database dan tabel berhasil dibuat.")
