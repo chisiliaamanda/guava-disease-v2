@@ -4,6 +4,7 @@ from ultralytics import YOLO
 import numpy as np
 import database
 import os
+import requests
 
 # Setup database dan folder gambar
 database.create_tables()
@@ -11,8 +12,8 @@ RIWAYAT_FOLDER = 'riwayat_images'
 os.makedirs(RIWAYAT_FOLDER, exist_ok=True)
 
 # Load model YOLO
-MODEL_PATH = 'weights/best.pt'
-model = YOLO(MODEL_PATH)
+model_url = "https://huggingface.co/username/project/resolve/main/best.pt"
+model = YOLO(model_url)
 
 # UI Styles
 def girly_style():
