@@ -4,11 +4,12 @@ import hashlib
 
 DB_PATH = "deteksi.db"
 
+# Membuat tabel users dan riwayat jika belum ada
 def create_tables():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Tabel users
+    # Tabel pengguna
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,22 +22,22 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS riwayat (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            image_name TEXT,
-            hasil TEXT,
-            waktu TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            user_id INTEGER NOT NULL,
+            image_name TEXT NOT NULL,
+            hasil TEXT NOT NULL,
+            waktu TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
 
     conn.commit()
     conn.close()
 
-# Fungsi hash password
+# Hash password dengan SHA-256
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Fungsi registrasi
+# Registrasi user baru
 def register_user(username, password):
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -49,7 +50,7 @@ def register_user(username, password):
     except sqlite3.IntegrityError:
         return False
 
-# Fungsi login
+# Login user
 def login_user(username, password):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -57,9 +58,7 @@ def login_user(username, password):
     cursor.execute("SELECT id FROM users WHERE username = ? AND password = ?", (username, hashed))
     user = cursor.fetchone()
     conn.close()
-    if user:
-        return user[0]  # user_id
-    return None
+    return user[0] if user else None
 
 # Simpan riwayat deteksi
 def simpan_riwayat(user_id, image_name, hasil):
@@ -73,7 +72,7 @@ def simpan_riwayat(user_id, image_name, hasil):
     conn.commit()
     conn.close()
 
-# Ambil riwayat berdasarkan user
+# Ambil riwayat berdasarkan user_id
 def ambil_riwayat(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -83,6 +82,6 @@ def ambil_riwayat(user_id):
         WHERE user_id = ?
         ORDER BY waktu DESC
     """, (user_id,))
-    hasil = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
-    return hasil
+    return rows
